@@ -1,14 +1,14 @@
 
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Horse } from "lucide-react";
+import { Horse as HorseIcon } from "lucide-react";
 
 const Navbar = () => {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="container flex h-16 items-center">
         <div className="flex items-center gap-2 font-semibold">
-          <Horse className="h-6 w-6 text-primary" />
+          <HorseIcon className="h-6 w-6 text-primary" />
           <span>Centro de Equinoterapia</span>
         </div>
         <nav className="ml-auto flex gap-4 items-center">
