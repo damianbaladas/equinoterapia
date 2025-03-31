@@ -1,8 +1,7 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getEstadisticas, getSesiones } from "@/lib/data";
-import { Calendar, Horse, User, Users } from "lucide-react";
+import { Calendar, Cat, User, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SesionDetallada } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -75,7 +74,7 @@ const Dashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Caballos</CardTitle>
-            <Horse className="h-4 w-4 text-muted-foreground" />
+            <Cat className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalCaballos}</div>
@@ -155,7 +154,7 @@ const Dashboard = () => {
             
             <Button asChild className="w-full" variant="outline">
               <Link to="/caballos/nuevo">
-                <Horse className="mr-2 h-4 w-4" />
+                <Cat className="mr-2 h-4 w-4" />
                 Nuevo Caballo
               </Link>
             </Button>
