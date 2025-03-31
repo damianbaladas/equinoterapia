@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Cat } from "lucide-react";
+import DatabaseStatus from "./DatabaseStatus";
 
 const Navbar = () => {
   return (
@@ -27,6 +28,7 @@ const Navbar = () => {
           <Button asChild variant="ghost">
             <Link to="/sesiones">Sesiones</Link>
           </Button>
+          <DatabaseStatus />
         </nav>
       </div>
     </header>
