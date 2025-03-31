@@ -9,7 +9,205 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      caballos: {
+        Row: {
+          altura: string | null
+          color: string | null
+          created_at: string
+          edad: number | null
+          entrenamiento: string | null
+          historial_medico: string | null
+          id: string
+          nombre: string
+          peso: string | null
+          raza: string | null
+          temperamento: string | null
+          updated_at: string
+        }
+        Insert: {
+          altura?: string | null
+          color?: string | null
+          created_at?: string
+          edad?: number | null
+          entrenamiento?: string | null
+          historial_medico?: string | null
+          id?: string
+          nombre: string
+          peso?: string | null
+          raza?: string | null
+          temperamento?: string | null
+          updated_at?: string
+        }
+        Update: {
+          altura?: string | null
+          color?: string | null
+          created_at?: string
+          edad?: number | null
+          entrenamiento?: string | null
+          historial_medico?: string | null
+          id?: string
+          nombre?: string
+          peso?: string | null
+          raza?: string | null
+          temperamento?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pacientes: {
+        Row: {
+          apellido: string
+          cedula: string
+          created_at: string
+          diagnostico: string | null
+          email: string | null
+          fecha_nacimiento: string | null
+          id: string
+          nombre: string
+          objetivos: string | null
+          observaciones: string | null
+          telefono: string | null
+          updated_at: string
+        }
+        Insert: {
+          apellido: string
+          cedula: string
+          created_at?: string
+          diagnostico?: string | null
+          email?: string | null
+          fecha_nacimiento?: string | null
+          id?: string
+          nombre: string
+          objetivos?: string | null
+          observaciones?: string | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Update: {
+          apellido?: string
+          cedula?: string
+          created_at?: string
+          diagnostico?: string | null
+          email?: string | null
+          fecha_nacimiento?: string | null
+          id?: string
+          nombre?: string
+          objetivos?: string | null
+          observaciones?: string | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      personal: {
+        Row: {
+          apellido: string
+          cargo: string | null
+          cedula: string
+          created_at: string
+          email: string | null
+          especialidad: string | null
+          fecha_contratacion: string | null
+          id: string
+          nombre: string
+          telefono: string | null
+          updated_at: string
+        }
+        Insert: {
+          apellido: string
+          cargo?: string | null
+          cedula: string
+          created_at?: string
+          email?: string | null
+          especialidad?: string | null
+          fecha_contratacion?: string | null
+          id?: string
+          nombre: string
+          telefono?: string | null
+          updated_at?: string
+        }
+        Update: {
+          apellido?: string
+          cargo?: string | null
+          cedula?: string
+          created_at?: string
+          email?: string | null
+          especialidad?: string | null
+          fecha_contratacion?: string | null
+          id?: string
+          nombre?: string
+          telefono?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sesiones: {
+        Row: {
+          actividades: string | null
+          caballo_id: string
+          created_at: string
+          duracion: string | null
+          estado: string | null
+          fecha: string
+          hora: string
+          id: string
+          observaciones: string | null
+          paciente_id: string
+          personal_id: string
+          updated_at: string
+        }
+        Insert: {
+          actividades?: string | null
+          caballo_id: string
+          created_at?: string
+          duracion?: string | null
+          estado?: string | null
+          fecha: string
+          hora: string
+          id?: string
+          observaciones?: string | null
+          paciente_id: string
+          personal_id: string
+          updated_at?: string
+        }
+        Update: {
+          actividades?: string | null
+          caballo_id?: string
+          created_at?: string
+          duracion?: string | null
+          estado?: string | null
+          fecha?: string
+          hora?: string
+          id?: string
+          observaciones?: string | null
+          paciente_id?: string
+          personal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesiones_caballo_id_fkey"
+            columns: ["caballo_id"]
+            isOneToOne: false
+            referencedRelation: "caballos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sesiones_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sesiones_personal_id_fkey"
+            columns: ["personal_id"]
+            isOneToOne: false
+            referencedRelation: "personal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

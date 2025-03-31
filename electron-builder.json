@@ -1,0 +1,36 @@
+
+{
+  "appId": "com.centro-equinoterapia.app",
+  "productName": "Centro de Equinoterapia",
+  "directories": {
+    "output": "releases",
+    "buildResources": "build-resources"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*"
+  ],
+  "win": {
+    "icon": "public/favicon.ico",
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Centro de Equinoterapia"
+  },
+  "mac": {
+    "category": "public.app-category.medical",
+    "target": "dmg"
+  },
+  "linux": {
+    "target": ["AppImage", "deb"]
+  }
+}

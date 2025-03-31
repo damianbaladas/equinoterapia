@@ -1,473 +1,301 @@
+import { v4 as uuidv4 } from 'uuid';
+import { supabase } from "@/integrations/supabase/client";
+import { Paciente, Personal, Caballo, Sesion, SesionDetallada } from './types';
 
-import { Paciente, Personal, Caballo, Sesion, SesionDetallada } from "./types";
-import { getDB, initDB, loadInitialData } from "./db";
-import { toast } from "sonner";
+// Function to convert snake_case keys to camelCase
+function snakeToCamel(arr: any[]): any[] {
+  return arr.map(obj => {
+    const newObj: { [key: string]: any } = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        const camelCaseKey = key.replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
+        newObj[camelCaseKey] = obj[key];
+      }
+    }
+    return newObj;
+  });
+}
 
-// Initial data for seeding the database
-const initialPacientes: Paciente[] = [
-  {
-    id: "p1",
-    cedula: "V-12345678",
-    nombre: "María",
-    apellido: "González",
-    fechaNacimiento: "2010-05-15",
-    telefono: "0414-1234567",
-    email: "maria@ejemplo.com",
-    diagnostico: "Trastorno del espectro autista",
-    objetivos: "Mejorar coordinación y comunicación",
-    observaciones: "Responde bien a actividades estructuradas"
-  },
-  {
-    id: "p2",
-    cedula: "V-23456789",
-    nombre: "Carlos",
-    apellido: "Rodríguez",
-    fechaNacimiento: "2008-10-20",
-    telefono: "0424-9876543",
-    diagnostico: "Parálisis cerebral leve",
-    objetivos: "Fortalecer músculos y equilibrio"
-  },
-  {
-    id: "p3",
-    cedula: "V-34567890",
-    nombre: "Ana",
-    apellido: "Martínez",
-    fechaNacimiento: "2015-03-08",
-    telefono: "0412-4567890",
-    email: "ana.martinez@ejemplo.com",
-    diagnostico: "Síndrome de Down",
-    objetivos: "Desarrollar habilidades sociales"
-  }
-];
-
-const initialPersonal: Personal[] = [
-  {
-    id: "e1",
-    cedula: "V-87654321",
-    nombre: "Javier",
-    apellido: "Méndez",
-    telefono: "0416-7654321",
-    email: "javier.mendez@ejemplo.com",
-    especialidad: "Fisioterapeuta",
-    cargo: "Terapeuta principal",
-    fechaContratacion: "2020-01-15"
-  },
-  {
-    id: "e2",
-    cedula: "V-76543210",
-    nombre: "Luisa",
-    apellido: "Fernández",
-    telefono: "0414-8765432",
-    email: "luisa@ejemplo.com",
-    especialidad: "Psicóloga",
-    cargo: "Terapeuta de apoyo",
-    fechaContratacion: "2021-03-01"
-  },
-  {
-    id: "e3",
-    cedula: "V-65432109",
-    nombre: "Roberto",
-    apellido: "Díaz",
-    telefono: "0424-5432109",
-    email: "roberto@ejemplo.com",
-    especialidad: "Entrenador ecuestre",
-    cargo: "Cuidador de caballos",
-    fechaContratacion: "2019-06-10"
-  }
-];
-
-const initialCaballos: Caballo[] = [
-  {
-    id: "c1",
-    nombre: "Luna",
-    edad: 8,
-    raza: "Cuarto de Milla",
-    color: "Alazán",
-    altura: "1.5 m",
-    peso: "450 kg",
-    temperamento: "Dócil y tranquila",
-    entrenamiento: "Completo para equinoterapia",
-    historialMedico: "Vacunas al día"
-  },
-  {
-    id: "c2",
-    nombre: "Estrella",
-    edad: 10,
-    raza: "Appaloosa",
-    color: "Moteado blanco y negro",
-    altura: "1.48 m",
-    peso: "420 kg",
-    temperamento: "Paciente y amigable",
-    entrenamiento: "Especializado en niños con autismo",
-    historialMedico: "Revisión dental reciente"
-  },
-  {
-    id: "c3",
-    nombre: "Trueno",
-    edad: 7,
-    raza: "Criollo",
-    color: "Negro",
-    altura: "1.52 m",
-    peso: "460 kg",
-    temperamento: "Enérgico pero obediente",
-    entrenamiento: "Básico para equinoterapia",
-    historialMedico: "Tratamiento para articulaciones"
-  }
-];
-
-const initialSesiones: Sesion[] = [
-  {
-    id: "s1",
-    fecha: "2023-04-10",
-    hora: "09:00",
-    pacienteId: "p1",
-    caballoId: "c1",
-    personalId: "e1",
-    duracion: "45 minutos",
-    actividades: "Ejercicios de equilibrio y coordinación",
-    observaciones: "Progreso notable en postura",
-    estado: "completada"
-  },
-  {
-    id: "s2",
-    fecha: "2023-04-11",
-    hora: "10:00",
-    pacienteId: "p2",
-    caballoId: "c2",
-    personalId: "e2",
-    duracion: "30 minutos",
-    actividades: "Relajación y contacto con el caballo",
-    observaciones: "Ansiedad inicial, luego buena adaptación",
-    estado: "completada"
-  },
-  {
-    id: "s3",
-    fecha: "2023-04-12",
-    hora: "11:00",
-    pacienteId: "p3",
-    caballoId: "c3",
-    personalId: "e3",
-    duracion: "40 minutos",
-    actividades: "Estimulación sensorial y ejercicios básicos",
-    estado: "programada"
-  }
-];
-
-// Initialize the database
-export const initializeDatabase = async () => {
+// Function to initialize the database with sample data
+export async function initializeDatabase() {
   try {
-    await initDB();
-    await loadInitialData(
-      initialPacientes, 
-      initialPersonal, 
-      initialCaballos, 
-      initialSesiones
-    );
+    // Check if the 'pacientes' table is empty
+    const { data: pacientes, error: pacientesError, count } = await supabase
+      .from('pacientes')
+      .select('*', { count: 'exact', head: true });
+
+    if (pacientesError) {
+      console.error("Error checking 'pacientes' table:", pacientesError);
+      throw pacientesError;
+    }
+
+    if (count === 0) {
+      // Insert sample data into the 'pacientes' table
+      const samplePacientes = [
+        { nombre: 'Juan Perez', fecha_nacimiento: '1990-05-15', diagnostico: 'Parálisis Cerebral', observaciones: 'Necesita apoyo en la marcha.' },
+        { nombre: 'Maria Rodriguez', fecha_nacimiento: '1985-10-20', diagnostico: 'Autismo', observaciones: 'Buena respuesta a estímulos visuales.' },
+      ];
+
+      const { error: insertError } = await supabase
+        .from('pacientes')
+        .insert(samplePacientes);
+
+      if (insertError) {
+        console.error("Error inserting sample data into 'pacientes':", insertError);
+        throw insertError;
+      } else {
+        console.log("Sample data inserted into 'pacientes' successfully.");
+      }
+    } else {
+      console.log("'pacientes' table is not empty. Skipping sample data insertion.");
+    }
   } catch (error) {
     console.error("Error initializing database:", error);
-    toast.error("Error al inicializar la base de datos");
   }
-};
+}
 
-// Funciones para gestionar pacientes
-export const getPacientes = async (): Promise<Paciente[]> => {
+// Add the missing getEstadisticas function
+export async function getEstadisticas() {
   try {
-    const db = await getDB();
-    return await db.getAll('pacientes');
-  } catch (error) {
-    console.error("Error al obtener pacientes:", error);
-    toast.error("Error al cargar los pacientes");
-    return [];
-  }
-};
+    // Get counts from Supabase
+    const [
+      { count: pacientes, error: pacientesError },
+      { count: personal, error: personalError },
+      { count: caballos, error: caballosError },
+      { data: sesiones, error: sesionesError }
+    ] = await Promise.all([
+      supabase.from('pacientes').select('*', { count: 'exact', head: true }),
+      supabase.from('personal').select('*', { count: 'exact', head: true }),
+      supabase.from('caballos').select('*', { count: 'exact', head: true }),
+      supabase.from('sesiones').select('fecha, estado')
+    ]);
 
-export const getPaciente = async (id: string): Promise<Paciente | undefined> => {
-  try {
-    const db = await getDB();
-    return await db.get('pacientes', id);
-  } catch (error) {
-    console.error("Error al obtener paciente:", error);
-    toast.error("Error al cargar los datos del paciente");
-    return undefined;
-  }
-};
+    if (pacientesError || personalError || caballosError || sesionesError) {
+      console.error("Error al obtener estadísticas:", 
+        pacientesError || personalError || caballosError || sesionesError);
+      throw new Error('Error al obtener estadísticas');
+    }
 
-export const crearPaciente = async (paciente: Omit<Paciente, "id">): Promise<Paciente> => {
-  try {
-    const db = await getDB();
-    const id = `p${Date.now()}`;
-    const nuevoPaciente = { ...paciente, id };
-    await db.add('pacientes', nuevoPaciente);
-    return nuevoPaciente;
-  } catch (error) {
-    console.error("Error al crear paciente:", error);
-    toast.error("Error al crear el paciente");
-    throw error;
-  }
-};
-
-export const actualizarPaciente = async (paciente: Paciente): Promise<Paciente> => {
-  try {
-    const db = await getDB();
-    await db.put('pacientes', paciente);
-    return paciente;
-  } catch (error) {
-    console.error("Error al actualizar paciente:", error);
-    toast.error("Error al actualizar el paciente");
-    throw error;
-  }
-};
-
-export const eliminarPaciente = async (id: string): Promise<void> => {
-  try {
-    const db = await getDB();
-    await db.delete('pacientes', id);
-  } catch (error) {
-    console.error("Error al eliminar paciente:", error);
-    toast.error("Error al eliminar el paciente");
-    throw error;
-  }
-};
-
-// Funciones para gestionar personal
-export const getPersonal = async (): Promise<Personal[]> => {
-  try {
-    const db = await getDB();
-    return await db.getAll('personal');
-  } catch (error) {
-    console.error("Error al obtener personal:", error);
-    toast.error("Error al cargar el personal");
-    return [];
-  }
-};
-
-export const getPersonalIndividual = async (id: string): Promise<Personal | undefined> => {
-  try {
-    const db = await getDB();
-    return await db.get('personal', id);
-  } catch (error) {
-    console.error("Error al obtener miembro del personal:", error);
-    toast.error("Error al cargar los datos del personal");
-    return undefined;
-  }
-};
-
-export const crearPersonal = async (miembro: Omit<Personal, "id">): Promise<Personal> => {
-  try {
-    const db = await getDB();
-    const id = `e${Date.now()}`;
-    const nuevoMiembro = { ...miembro, id };
-    await db.add('personal', nuevoMiembro);
-    return nuevoMiembro;
-  } catch (error) {
-    console.error("Error al crear personal:", error);
-    toast.error("Error al crear el miembro del personal");
-    throw error;
-  }
-};
-
-export const actualizarPersonal = async (miembro: Personal): Promise<Personal> => {
-  try {
-    const db = await getDB();
-    await db.put('personal', miembro);
-    return miembro;
-  } catch (error) {
-    console.error("Error al actualizar personal:", error);
-    toast.error("Error al actualizar el miembro del personal");
-    throw error;
-  }
-};
-
-export const eliminarPersonal = async (id: string): Promise<void> => {
-  try {
-    const db = await getDB();
-    await db.delete('personal', id);
-  } catch (error) {
-    console.error("Error al eliminar personal:", error);
-    toast.error("Error al eliminar el miembro del personal");
-    throw error;
-  }
-};
-
-// Funciones para gestionar caballos
-export const getCaballos = async (): Promise<Caballo[]> => {
-  try {
-    const db = await getDB();
-    return await db.getAll('caballos');
-  } catch (error) {
-    console.error("Error al obtener caballos:", error);
-    toast.error("Error al cargar los caballos");
-    return [];
-  }
-};
-
-export const getCaballo = async (id: string): Promise<Caballo | undefined> => {
-  try {
-    const db = await getDB();
-    return await db.get('caballos', id);
-  } catch (error) {
-    console.error("Error al obtener caballo:", error);
-    toast.error("Error al cargar los datos del caballo");
-    return undefined;
-  }
-};
-
-export const crearCaballo = async (caballo: Omit<Caballo, "id">): Promise<Caballo> => {
-  try {
-    const db = await getDB();
-    const id = `c${Date.now()}`;
-    const nuevoCaballo = { ...caballo, id };
-    await db.add('caballos', nuevoCaballo);
-    return nuevoCaballo;
-  } catch (error) {
-    console.error("Error al crear caballo:", error);
-    toast.error("Error al crear el caballo");
-    throw error;
-  }
-};
-
-export const actualizarCaballo = async (caballo: Caballo): Promise<Caballo> => {
-  try {
-    const db = await getDB();
-    await db.put('caballos', caballo);
-    return caballo;
-  } catch (error) {
-    console.error("Error al actualizar caballo:", error);
-    toast.error("Error al actualizar el caballo");
-    throw error;
-  }
-};
-
-export const eliminarCaballo = async (id: string): Promise<void> => {
-  try {
-    const db = await getDB();
-    await db.delete('caballos', id);
-  } catch (error) {
-    console.error("Error al eliminar caballo:", error);
-    toast.error("Error al eliminar el caballo");
-    throw error;
-  }
-};
-
-// Funciones para gestionar sesiones
-export const getSesiones = async (): Promise<SesionDetallada[]> => {
-  try {
-    const db = await getDB();
-    const sesiones = await db.getAll('sesiones');
-    const pacientes = await db.getAll('pacientes');
-    const caballos = await db.getAll('caballos');
-    const personal = await db.getAll('personal');
-    
-    return sesiones.map(sesion => {
-      const paciente = pacientes.find(p => p.id === sesion.pacienteId);
-      const caballo = caballos.find(c => c.id === sesion.caballoId);
-      const miembroPersonal = personal.find(p => p.id === sesion.personalId);
-      
-      return {
-        ...sesion,
-        paciente: paciente ? { nombre: paciente.nombre, apellido: paciente.apellido } : undefined,
-        caballo: caballo ? { nombre: caballo.nombre } : undefined,
-        personal: miembroPersonal ? { nombre: miembroPersonal.nombre, apellido: miembroPersonal.apellido } : undefined
-      };
+    // Process session data to get statistics
+    const fechaHoy = new Date();
+    const sesionesHoy = snakeToCamel(sesiones || []).filter(s => {
+      const fechaSesion = new Date(s.fecha);
+      return fechaSesion.toDateString() === fechaHoy.toDateString();
     });
-  } catch (error) {
-    console.error("Error al obtener sesiones:", error);
-    toast.error("Error al cargar las sesiones");
-    return [];
-  }
-};
 
-export const getSesion = async (id: string): Promise<SesionDetallada | undefined> => {
-  try {
-    const db = await getDB();
-    const sesion = await db.get('sesiones', id);
-    if (!sesion) return undefined;
+    const sesionesProgramadas = snakeToCamel(sesiones || []).filter(s => 
+      s.estado === 'programada'
+    );
 
-    const paciente = await db.get('pacientes', sesion.pacienteId);
-    const caballo = await db.get('caballos', sesion.caballoId);
-    const miembroPersonal = await db.get('personal', sesion.personalId);
+    const sesionesCompletadas = snakeToCamel(sesiones || []).filter(s => 
+      s.estado === 'completada'
+    );
 
     return {
-      ...sesion,
-      paciente: paciente ? { nombre: paciente.nombre, apellido: paciente.apellido } : undefined,
-      caballo: caballo ? { nombre: caballo.nombre } : undefined,
-      personal: miembroPersonal ? { nombre: miembroPersonal.nombre, apellido: miembroPersonal.apellido } : undefined
-    };
-  } catch (error) {
-    console.error("Error al obtener sesión:", error);
-    toast.error("Error al cargar los datos de la sesión");
-    return undefined;
-  }
-};
-
-export const crearSesion = async (sesion: Omit<Sesion, "id">): Promise<Sesion> => {
-  try {
-    const db = await getDB();
-    const id = `s${Date.now()}`;
-    const nuevaSesion = { ...sesion, id };
-    await db.add('sesiones', nuevaSesion);
-    return nuevaSesion;
-  } catch (error) {
-    console.error("Error al crear sesión:", error);
-    toast.error("Error al crear la sesión");
-    throw error;
-  }
-};
-
-export const actualizarSesion = async (sesion: Sesion): Promise<Sesion> => {
-  try {
-    const db = await getDB();
-    await db.put('sesiones', sesion);
-    return sesion;
-  } catch (error) {
-    console.error("Error al actualizar sesión:", error);
-    toast.error("Error al actualizar la sesión");
-    throw error;
-  }
-};
-
-export const eliminarSesion = async (id: string): Promise<void> => {
-  try {
-    const db = await getDB();
-    await db.delete('sesiones', id);
-  } catch (error) {
-    console.error("Error al eliminar sesión:", error);
-    toast.error("Error al eliminar la sesión");
-    throw error;
-  }
-};
-
-// Estadísticas para el dashboard
-export const getEstadisticas = async (): Promise<{
-  totalPacientes: number;
-  totalPersonal: number;
-  totalCaballos: number;
-  sesionesCompletadas: number;
-  sesionesProgramadas: number;
-}> => {
-  try {
-    const db = await getDB();
-    const pacientes = await db.getAll('pacientes');
-    const personal = await db.getAll('personal');
-    const caballos = await db.getAll('caballos');
-    const sesiones = await db.getAll('sesiones');
-    
-    return {
-      totalPacientes: pacientes.length,
-      totalPersonal: personal.length,
-      totalCaballos: caballos.length,
-      sesionesCompletadas: sesiones.filter(s => s.estado === "completada").length,
-      sesionesProgramadas: sesiones.filter(s => s.estado === "programada").length
+      pacientes: pacientes || 0,
+      personal: personal || 0,
+      caballos: caballos || 0,
+      sesiones: (sesiones?.length || 0),
+      sesionesHoy: sesionesHoy.length,
+      sesionesProgramadas: sesionesProgramadas.length,
+      sesionesCompletadas: sesionesCompletadas.length
     };
   } catch (error) {
     console.error("Error al obtener estadísticas:", error);
-    toast.error("Error al cargar las estadísticas");
+    // Return default values in case of error
     return {
-      totalPacientes: 0,
-      totalPersonal: 0,
-      totalCaballos: 0,
-      sesionesCompletadas: 0,
-      sesionesProgramadas: 0
+      pacientes: 0,
+      personal: 0,
+      caballos: 0,
+      sesiones: 0,
+      sesionesHoy: 0,
+      sesionesProgramadas: 0,
+      sesionesCompletadas: 0
     };
   }
-};
+}
+
+// Generic function to fetch data from a table
+async function fetchData<T>(table: string): Promise<T[]> {
+  try {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*');
+
+    if (error) {
+      console.error(`Error fetching ${table}:`, error);
+      return [];
+    }
+
+    return snakeToCamel(data) as T[];
+  } catch (error) {
+    console.error(`Error fetching ${table}:`, error);
+    return [];
+  }
+}
+
+// Generic function to fetch data from a table by ID
+async function fetchDataById<T>(table: string, id: string): Promise<T | null> {
+  try {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error(`Error fetching ${table} with ID ${id}:`, error);
+      return null;
+    }
+
+    return snakeToCamel([data])[0] as T;
+  } catch (error) {
+    console.error(`Error fetching ${table} with ID ${id}:`, error);
+    return null;
+  }
+}
+
+// Generic function to create a new record in a table
+async function createData<T>(table: string, newData: Omit<T, 'id'>): Promise<T | null> {
+  try {
+    const id = uuidv4();
+    const { data, error } = await supabase
+      .from(table)
+      .insert([{ id, ...newData }])
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error(`Error creating record in ${table}:`, error);
+      return null;
+    }
+
+    return snakeToCamel([data])[0] as T;
+  } catch (error) {
+    console.error(`Error creating record in ${table}:`, error);
+    return null;
+  }
+}
+
+// Generic function to update a record in a table
+async function updateData<T>(table: string, id: string, updatedData: Partial<T>): Promise<T | null> {
+  try {
+    const { data, error } = await supabase
+      .from(table)
+      .update(updatedData)
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error(`Error updating record in ${table} with ID ${id}:`, error);
+      return null;
+    }
+
+    return snakeToCamel([data])[0] as T;
+  } catch (error) {
+    console.error(`Error updating record in ${table} with ID ${id}:`, error);
+    return null;
+  }
+}
+
+// Generic function to delete a record from a table
+async function deleteData(table: string, id: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error(`Error deleting record from ${table} with ID ${id}:`, error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error(`Error deleting record from ${table} with ID ${id}:`, error);
+    return false;
+  }
+}
+
+// Specific functions for each entity
+export async function getPacientes(): Promise<Paciente[]> {
+  return fetchData<Paciente>('pacientes');
+}
+
+export async function getPaciente(id: string): Promise<Paciente | null> {
+  return fetchDataById<Paciente>('pacientes', id);
+}
+
+export async function createPaciente(paciente: Omit<Paciente, 'id'>): Promise<Paciente | null> {
+  return createData<Paciente>('pacientes', paciente);
+}
+
+export async function updatePaciente(id: string, paciente: Partial<Paciente>): Promise<Paciente | null> {
+  return updateData<Paciente>('pacientes', id, paciente);
+}
+
+export async function deletePaciente(id: string): Promise<boolean> {
+  return deleteData('pacientes', id);
+}
+
+export async function getPersonal(): Promise<Personal[]> {
+  return fetchData<Personal>('personal');
+}
+
+export async function getPersonalById(id: string): Promise<Personal | null> {
+  return fetchDataById<Personal>('personal', id);
+}
+
+export async function createPersonal(personal: Omit<Personal, 'id'>): Promise<Personal | null> {
+  return createData<Personal>('personal', personal);
+}
+
+export async function updatePersonal(id: string, personal: Partial<Personal>): Promise<Personal | null> {
+  return updateData<Personal>('personal', id, personal);
+}
+
+export async function deletePersonal(id: string): Promise<boolean> {
+  return deleteData('personal', id);
+}
+
+export async function getCaballos(): Promise<Caballo[]> {
+  return fetchData<Caballo>('caballos');
+}
+
+export async function getCaballo(id: string): Promise<Caballo | null> {
+  return fetchDataById<Caballo>('caballos', id);
+}
+
+export async function createCaballo(caballo: Omit<Caballo, 'id'>): Promise<Caballo | null> {
+  return createData<Caballo>('caballos', caballo);
+}
+
+export async function updateCaballo(id: string, caballo: Partial<Caballo>): Promise<Caballo | null> {
+  return updateData<Caballo>('caballos', id, caballo);
+}
+
+export async function deleteCaballo(id: string): Promise<boolean> {
+  return deleteData('caballos', id);
+}
+
+export async function getSesiones(): Promise<Sesion[]> {
+  return fetchData<Sesion>('sesiones');
+}
+
+export async function getSesion(id: string): Promise<Sesion | null> {
+  return fetchDataById<Sesion>('sesiones', id);
+}
+
+export async function createSesion(sesion: Omit<Sesion, 'id'>): Promise<Sesion | null> {
+  return createData<Sesion>('sesiones', sesion);
+}
+
+export async function updateSesion(id: string, sesion: Partial<Sesion>): Promise<Sesion | null> {
+  return updateData<Sesion>('sesiones', id, sesion);
+}
+
+export async function deleteSesion(id: string): Promise<boolean> {
+  return deleteData('sesiones', id);
+}
