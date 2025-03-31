@@ -1,6 +1,8 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from "@/integrations/supabase/client";
 import { Paciente, Personal, Caballo, Sesion, SesionDetallada } from './types';
+import { toast } from "sonner";
 
 // Function to convert snake_case keys to camelCase
 function snakeToCamel(arr: any[]): any[] {
@@ -92,10 +94,10 @@ export async function getEstadisticas() {
     );
 
     return {
-      pacientes: pacientes || 0,
-      personal: personal || 0,
-      caballos: caballos || 0,
-      sesiones: (sesiones?.length || 0),
+      totalPacientes: pacientes || 0,
+      totalPersonal: personal || 0,
+      totalCaballos: caballos || 0,
+      totalSesiones: (sesiones?.length || 0),
       sesionesHoy: sesionesHoy.length,
       sesionesProgramadas: sesionesProgramadas.length,
       sesionesCompletadas: sesionesCompletadas.length
@@ -104,10 +106,10 @@ export async function getEstadisticas() {
     console.error("Error al obtener estadísticas:", error);
     // Return default values in case of error
     return {
-      pacientes: 0,
-      personal: 0,
-      caballos: 0,
-      sesiones: 0,
+      totalPacientes: 0,
+      totalPersonal: 0,
+      totalCaballos: 0,
+      totalSesiones: 0,
       sesionesHoy: 0,
       sesionesProgramadas: 0,
       sesionesCompletadas: 0
@@ -228,15 +230,15 @@ export async function getPaciente(id: string): Promise<Paciente | null> {
   return fetchDataById<Paciente>('pacientes', id);
 }
 
-export async function createPaciente(paciente: Omit<Paciente, 'id'>): Promise<Paciente | null> {
+export async function crearPaciente(paciente: Omit<Paciente, 'id'>): Promise<Paciente | null> {
   return createData<Paciente>('pacientes', paciente);
 }
 
-export async function updatePaciente(id: string, paciente: Partial<Paciente>): Promise<Paciente | null> {
+export async function actualizarPaciente(id: string, paciente: Partial<Paciente>): Promise<Paciente | null> {
   return updateData<Paciente>('pacientes', id, paciente);
 }
 
-export async function deletePaciente(id: string): Promise<boolean> {
+export async function eliminarPaciente(id: string): Promise<boolean> {
   return deleteData('pacientes', id);
 }
 
@@ -248,15 +250,19 @@ export async function getPersonalById(id: string): Promise<Personal | null> {
   return fetchDataById<Personal>('personal', id);
 }
 
-export async function createPersonal(personal: Omit<Personal, 'id'>): Promise<Personal | null> {
+export async function getPersonalIndividual(id: string): Promise<Personal | null> {
+  return fetchDataById<Personal>('personal', id);
+}
+
+export async function crearPersonal(personal: Omit<Personal, 'id'>): Promise<Personal | null> {
   return createData<Personal>('personal', personal);
 }
 
-export async function updatePersonal(id: string, personal: Partial<Personal>): Promise<Personal | null> {
+export async function actualizarPersonal(id: string, personal: Partial<Personal>): Promise<Personal | null> {
   return updateData<Personal>('personal', id, personal);
 }
 
-export async function deletePersonal(id: string): Promise<boolean> {
+export async function eliminarPersonal(id: string): Promise<boolean> {
   return deleteData('personal', id);
 }
 
@@ -268,34 +274,92 @@ export async function getCaballo(id: string): Promise<Caballo | null> {
   return fetchDataById<Caballo>('caballos', id);
 }
 
-export async function createCaballo(caballo: Omit<Caballo, 'id'>): Promise<Caballo | null> {
+export async function crearCaballo(caballo: Omit<Caballo, 'id'>): Promise<Caballo | null> {
   return createData<Caballo>('caballos', caballo);
 }
 
-export async function updateCaballo(id: string, caballo: Partial<Caballo>): Promise<Caballo | null> {
+export async function actualizarCaballo(id: string, caballo: Partial<Caballo>): Promise<Caballo | null> {
   return updateData<Caballo>('caballos', id, caballo);
 }
 
-export async function deleteCaballo(id: string): Promise<boolean> {
+export async function eliminarCaballo(id: string): Promise<boolean> {
   return deleteData('caballos', id);
 }
 
-export async function getSesiones(): Promise<Sesion[]> {
-  return fetchData<Sesion>('sesiones');
+export async function getSesiones(): Promise<SesionDetallada[]> {
+  try {
+    const { data, error } = await supabase
+      .from('sesiones')
+      .select(`
+        *,
+        paciente:paciente_id(nombre, apellido),
+        caballo:caballo_id(nombre),
+        personal:personal_id(nombre, apellido)
+      `)
+      .order('fecha', { ascending: false });
+    
+    if (error) {
+      console.error('Error al obtener sesiones:', error);
+      throw new Error('Error al obtener sesiones');
+    }
+    
+    return snakeToCamel(data || []);
+  } catch (error) {
+    console.error('Error al obtener sesiones:', error);
+    return [];
+  }
 }
 
-export async function getSesion(id: string): Promise<Sesion | null> {
-  return fetchDataById<Sesion>('sesiones', id);
+export async function getSesion(id: string): Promise<SesionDetallada | null> {
+  try {
+    const { data, error } = await supabase
+      .from('sesiones')
+      .select(`
+        *,
+        paciente:paciente_id(nombre, apellido),
+        caballo:caballo_id(nombre),
+        personal:personal_id(nombre, apellido)
+      `)
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      console.error('Error al obtener sesión:', error);
+      throw new Error('Error al obtener sesión');
+    }
+    
+    return data ? snakeToCamel([data])[0] : null;
+  } catch (error) {
+    console.error('Error al obtener sesión:', error);
+    return null;
+  }
 }
 
-export async function createSesion(sesion: Omit<Sesion, 'id'>): Promise<Sesion | null> {
+export async function crearSesion(sesion: Omit<Sesion, 'id'>): Promise<Sesion | null> {
   return createData<Sesion>('sesiones', sesion);
 }
 
-export async function updateSesion(id: string, sesion: Partial<Sesion>): Promise<Sesion | null> {
+export async function actualizarSesion(id: string, sesion: Partial<Sesion>): Promise<Sesion | null> {
   return updateData<Sesion>('sesiones', id, sesion);
 }
 
-export async function deleteSesion(id: string): Promise<boolean> {
+export async function eliminarSesion(id: string): Promise<boolean> {
   return deleteData('sesiones', id);
 }
+
+// Compatibility functions with older naming convention
+export const createPaciente = crearPaciente;
+export const updatePaciente = actualizarPaciente;
+export const deletePaciente = eliminarPaciente;
+
+export const createPersonal = crearPersonal;
+export const updatePersonal = actualizarPersonal;
+export const deletePersonal = eliminarPersonal;
+
+export const createCaballo = crearCaballo;
+export const updateCaballo = actualizarCaballo;
+export const deleteCaballo = eliminarCaballo;
+
+export const createSesion = crearSesion;
+export const updateSesion = actualizarSesion;
+export const deleteSesion = eliminarSesion;
